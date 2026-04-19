@@ -1,0 +1,18 @@
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+COPY src/LifeOrchestration.Core/LifeOrchestration.Core.csproj src/LifeOrchestration.Core/
+COPY src/LifeOrchestration.Web/LifeOrchestration.Web.csproj src/LifeOrchestration.Web/
+
+RUN dotnet restore src/LifeOrchestration.Web/LifeOrchestration.Web.csproj
+
+COPY src/ src/
+RUN dotnet publish src/LifeOrchestration.Web/LifeOrchestration.Web.csproj -c Release -o /app
+
+FROM mcr.microsoft.com/dotnet/aspnet:9.0
+WORKDIR /app
+COPY --from=build /app .
+
+EXPOSE 8080
+ENV ASPNETCORE_URLS=http://+:8080
+ENTRYPOINT ["dotnet", "LifeOrchestration.Web.dll"]

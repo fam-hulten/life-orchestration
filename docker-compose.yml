@@ -1,8 +1,20 @@
 services:
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.api
     ports:
       - "3080:8080"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    ports:
+      - "3081:8080"
     volumes:
       - ./data:/app/data
     restart: unless-stopped

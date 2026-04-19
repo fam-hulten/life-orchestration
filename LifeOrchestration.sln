@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LifeOrchestration.Api", "sr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LifeOrchestration.Cli", "src\LifeOrchestration.Cli\LifeOrchestration.Cli.csproj", "{BAE2D0A8-757E-46C0-8105-13F8A1731EBF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LifeOrchestration.Web", "src\LifeOrchestration.Web\LifeOrchestration.Web.csproj", "{F3AD6A76-C4B7-473A-9736-F74BB4B9B3C7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -71,6 +73,18 @@ Global
 		{BAE2D0A8-757E-46C0-8105-13F8A1731EBF}.Release|x64.Build.0 = Release|Any CPU
 		{BAE2D0A8-757E-46C0-8105-13F8A1731EBF}.Release|x86.ActiveCfg = Release|Any CPU
 		{BAE2D0A8-757E-46C0-8105-13F8A1731EBF}.Release|x86.Build.0 = Release|Any CPU
+		{F3AD6A76-C4B7-473A-9736-F74BB4B9B3C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3AD6A76-C4B7-473A-9736-F74BB4B9B3C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3AD6A76-C4B7-473A-9736-F74BB4B9B3C7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F3AD6A76-C4B7-473A-9736-F74BB4B9B3C7}.Debug|x64.Build.0 = Debug|Any CPU
+		{F3AD6A76-C4B7-473A-9736-F74BB4B9B3C7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F3AD6A76-C4B7-473A-9736-F74BB4B9B3C7}.Debug|x86.Build.0 = Debug|Any CPU
+		{F3AD6A76-C4B7-473A-9736-F74BB4B9B3C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3AD6A76-C4B7-473A-9736-F74BB4B9B3C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3AD6A76-C4B7-473A-9736-F74BB4B9B3C7}.Release|x64.ActiveCfg = Release|Any CPU
+		{F3AD6A76-C4B7-473A-9736-F74BB4B9B3C7}.Release|x64.Build.0 = Release|Any CPU
+		{F3AD6A76-C4B7-473A-9736-F74BB4B9B3C7}.Release|x86.ActiveCfg = Release|Any CPU
+		{F3AD6A76-C4B7-473A-9736-F74BB4B9B3C7}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -80,5 +94,6 @@ Global
 		{89E77200-582A-4FF7-ADDE-20D622CD1682} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{B8C5C0F3-669F-40DC-A110-F59D5DD894B8} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{BAE2D0A8-757E-46C0-8105-13F8A1731EBF} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{F3AD6A76-C4B7-473A-9736-F74BB4B9B3C7} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal
