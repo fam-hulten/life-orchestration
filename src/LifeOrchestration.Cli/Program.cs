@@ -3,9 +3,9 @@ using CoreTaskStatus = LifeOrchestration.Core.Entities.TaskStatus;
 
 var baseUrl = Environment.GetEnvironmentVariable("PM_API_URL") ?? "http://localhost:3080";
 var client = new HttpClient { BaseAddress = new Uri(baseUrl) };
-var args = args.ToList();
+var argv = args.ToList();
 
-if (args.Count == 0)
+if (argv.Count == 0)
 {
     Console.WriteLine("Usage: pm <command> [options]");
     Console.WriteLine();
@@ -21,24 +21,24 @@ if (args.Count == 0)
     return;
 }
 
-var command = args[0].ToLower();
+var command = argv[0].ToLower();
 
 switch (command)
 {
     case "add":
-        await AddTask(args);
+        await AddTask(argv);
         break;
     case "list":
-        await ListTasks(args);
+        await ListTasks(argv);
         break;
     case "start":
-        await UpdateStatus(args, CoreTaskStatus.InProgress);
+        await UpdateStatus(argv, CoreTaskStatus.InProgress);
         break;
     case "done":
-        await UpdateStatus(args, CoreTaskStatus.Done);
+        await UpdateStatus(argv, CoreTaskStatus.Done);
         break;
     case "delete":
-        await DeleteTask(args);
+        await DeleteTask(argv);
         break;
     default:
         Console.WriteLine($"Unknown command: {command}");
