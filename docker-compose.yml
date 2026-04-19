@@ -1,0 +1,8 @@
+services:
+  api:
+    build: .
+    ports:
+      - "3080:8080"
+    volumes:
+      - ./data:/app
+    restart: unless-stopped
