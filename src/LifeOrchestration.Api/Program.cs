@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite("Data Source=lifeorchestration.db"));
+    options.UseSqlite("Data Source=data/lifeorchestration.db"));
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
