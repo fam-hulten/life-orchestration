@@ -8,13 +8,12 @@ COPY src/LifeOrchestration.Api/LifeOrchestration.Api.csproj src/LifeOrchestratio
 RUN dotnet restore src/LifeOrchestration.Api/LifeOrchestration.Api.csproj
 
 COPY src/ src/
-RUN dotnet publish src/LifeOrchestration.Api/LifeOrchestration.Api.csproj -c Release -o /app --no-restore
+RUN dotnet publish src/LifeOrchestration.Api/LifeOrchestration.Api.csproj -c Release -o /app
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
 COPY --from=build /app .
-VOLUME [ "/app" ]
 
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
-ENTRYPOINT [ "dotnet", "LifeOrchestration.Api.dll" ]
+ENTRYPOINT ["dotnet", "LifeOrchestration.Api.dll"]
