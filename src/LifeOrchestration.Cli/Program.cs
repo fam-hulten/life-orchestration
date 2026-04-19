@@ -53,9 +53,14 @@ async Task AddTask(List<string> args)
     for (int i = 1; i < args.Count; i++)
     {
         if (args[i] == "--assignee" && i + 1 < args.Count)
+        {
             assignee = args[i + 1];
+            i++; // Skip consumed value
+        }
         else if (!args[i].StartsWith("--"))
+        {
             title = args[i];
+        }
     }
 
     if (string.IsNullOrWhiteSpace(title))
@@ -91,10 +96,15 @@ async Task ListTasks(List<string> args)
 
     for (int i = 1; i < args.Count; i++)
     {
-        if (args[i] != "--assignee" && !args[i].StartsWith("--"))
-            assigneeFilter = args[i];
-        else if (args[i] == "--assignee" && i + 1 < args.Count)
+        if (args[i] == "--assignee" && i + 1 < args.Count)
+        {
             assigneeFilter = args[i + 1];
+            i++; // Skip consumed value
+        }
+        else if (!args[i].StartsWith("--"))
+        {
+            assigneeFilter = args[i];
+        }
     }
 
     var url = "/api/tasks";
