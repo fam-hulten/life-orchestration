@@ -34,13 +34,16 @@
                             <div class="btn-group btn-group-sm">
                                 @if (task.Status != TaskStatus.Done)
                                 {
-                                    <button class="btn btn-success btn-sm" @onclick="() => UpdateStatus(task.Id, TaskStatus.Done)">✓</button>
+                                    <button type="button" class="btn btn-success btn-sm" 
+                                        @onclick="() => UpdateStatus(task.Id, TaskStatus.Done)">✓</button>
                                 }
                                 @if (task.Status == TaskStatus.Todo)
                                 {
-                                    <button class="btn btn-primary btn-sm" @onclick="() => UpdateStatus(task.Id, TaskStatus.InProgress)">▶</button>
+                                    <button type="button" class="btn btn-primary btn-sm" 
+                                        @onclick="() => UpdateStatus(task.Id, TaskStatus.InProgress)">▶</button>
                                 }
-                                <button class="btn btn-danger btn-sm" @onclick="() => DeleteTask(task.Id)">✕</button>
+                                <button type="button" class="btn btn-danger btn-sm" 
+                                    @onclick="() => DeleteTask(task.Id)">✕</button>
                             </div>
                         </li>
                     }
@@ -55,7 +58,7 @@
                 </div>
                 <div class="card-body">
                     <div class="mb-2">
-                        <input class="form-control" placeholder="Titel" @bind="newTitle" />
+                        <input type="text" class="form-control" placeholder="Titel" @bind="newTitle" />
                     </div>
                     <div class="mb-2">
                         <select class="form-select" @bind="newAssignee">
@@ -65,7 +68,8 @@
                             <option value="Johanna">Johanna</option>
                         </select>
                     </div>
-                    <button class="btn btn-primary w-100" @onclick="CreateTask" disabled="@(string.IsNullOrWhiteSpace(newTitle) || string.IsNullOrWhiteSpace(newAssignee))">
+                    <button type="button" class="btn btn-primary w-100" 
+                        @onclick="CreateTask">
                         Skapa
                     </button>
                 </div>
@@ -78,8 +82,6 @@
     private List<TaskItem>? tasks;
     private string newTitle = "";
     private string newAssignee = "";
-    
-
     
     private HttpClient httpClient = new() { BaseAddress = new Uri("http://host.docker.internal:3080") };
     

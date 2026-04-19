@@ -6,13 +6,15 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+// Configure minimal antiforgery
+builder.Services.AddAntiforgery(options => 
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-}
+    options.Cookie.Name = "lo.antiforgery";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+});
+
+var app = builder.Build();
 
 app.UseAntiforgery();
 
