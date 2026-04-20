@@ -11,7 +11,7 @@ if (argv.Count == 0)
     Console.WriteLine("Usage: pm <command> [options]");
     Console.WriteLine();
     Console.WriteLine("Commands:");
-    Console.WriteLine("  add <title> --assignee <name> [--due-date YYYY-MM-DD] [--requestor <name>] [--priority low|medium|high|critical]");
+    Console.WriteLine("  add <title> --assignee <name> [--due-date YYYY-MM-DD] [--requestor <name>] [--priority low|medium|high|critical] [--category <name>]");
     Console.WriteLine("  list [assignee]                 List tasks (optionally filtered by assignee)");
     Console.WriteLine("  start <id>                      Start a task (set status to in_progress)");
     Console.WriteLine("  done <id>                       Complete a task (set status to done)");
@@ -53,6 +53,7 @@ async Task AddTask(List<string> args)
     DateTime? dueDate = null;
     string? requestor = null;
     int priority = 1; // Medium
+    string? category = null;
 
     for (int i = 1; i < args.Count; i++)
     {
@@ -84,6 +85,11 @@ async Task AddTask(List<string> args)
             };
             i++; // Skip consumed value
         }
+        else if (args[i] == "--category" && i + 1 < args.Count)
+        {
+            category = args[i + 1];
+            i++; // Skip consumed value
+        }
         else if (!args[i].StartsWith("--"))
         {
             title = args[i];
@@ -93,19 +99,19 @@ async Task AddTask(List<string> args)
     if (string.IsNullOrWhiteSpace(title))
     {
         Console.WriteLine("Error: Title is required");
-        Console.WriteLine("Usage: pm add <title> --assignee <name> [--due-date YYYY-MM-DD] [--requestor <name>] [--priority low|medium|high|critical]");
+        Console.WriteLine("Usage: pm add <title> --assignee <name> [--due-date YYYY-MM-DD] [--requestor <name>] [--priority low|medium|high|critical] [--category <name>]");
         return;
     }
 
     if (string.IsNullOrWhiteSpace(assignee))
     {
         Console.WriteLine("Error: Assignee is required");
-        Console.WriteLine("Usage: pm add <title> --assignee <name> [--due-date YYYY-MM-DD] [--requestor <name>] [--priority low|medium|high|critical]");
+        Console.WriteLine("Usage: pm add <title> --assignee <name> [--due-date YYYY-MM-DD] [--requestor <name>] [--priority low|medium|high|critical] [--category <name>]");
         return;
     }
 
     var priorityLevel = (PriorityLevel)priority;
-    var request = new { Title = title, Assignee = assignee, DueDate = dueDate, Requestor = requestor, Priority = priorityLevel };
+    var request = new { Title = title, Assignee = assignee, DueDate = dueDate, Requestor = requestor, Priority = priorityLevel, Category = category };
     var response = await client.PostAsJsonAsync("/api/tasks", request);
 
     if (!response.IsSuccessStatusCode)
@@ -118,7 +124,8 @@ async Task AddTask(List<string> args)
     var dueStr = task!.DueDate.HasValue ? $", due: {task.DueDate.Value:yyyy-MM-dd}" : "";
     var reqStr = !string.IsNullOrEmpty(task.Requestor) ? $", requestor: {task.Requestor}" : "";
     var priStr = task.Priority != PriorityLevel.Medium ? $", priority: {task.Priority}" : "";
-    Console.WriteLine($"✓ Task #{task!.Id} created: \"{task.Title}\" (assignee: {task.Assignee}{dueStr}{reqStr}{priStr})");
+    var catStr = !string.IsNullOrEmpty(task.Category) ? $", category: {task.Category}" : "";
+    Console.WriteLine($"✓ Task #{task!.Id} created: \"{task.Title}\" (assignee: {task.Assignee}{dueStr}{reqStr}{priStr}{catStr})");
 }
 
 async Task ListTasks(List<string> args)
@@ -170,7 +177,8 @@ async Task ListTasks(List<string> args)
         var dueStr = task.DueDate.HasValue ? $" | due: {task.DueDate.Value:yyyy-MM-dd}" : "";
         var reqStr = !string.IsNullOrEmpty(task.Requestor) ? $" | requestor: {task.Requestor}" : "";
         var priStr = task.Priority != PriorityLevel.Medium ? $" | prio: {task.Priority}" : "";
-        Console.WriteLine($"{statusIcon} #{task.Id} | {task.Status,-12} | {task.Assignee,-10} | {task.Title}{dueStr}{reqStr}{priStr}");
+        var catStr = !string.IsNullOrEmpty(task.Category) ? $" | cat: {task.Category}" : "";
+        Console.WriteLine($"{statusIcon} #{task.Id} | {task.Status,-12} | {task.Assignee,-10} | {task.Title}{dueStr}{reqStr}{priStr}{catStr}");
     }
 }
 
@@ -257,4 +265,5 @@ public class TaskItem
     public DateTime CreatedAt { get; set; }
     public DateTime? DueDate { get; set; }
     public PriorityLevel Priority { get; set; }
+    public string? Category { get; set; }
 }

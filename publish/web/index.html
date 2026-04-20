@@ -52,6 +52,16 @@
                                 <option value="3">Critical</option>
                             </select>
                         </div>
+                        <div class="mb-2">
+                            <select id="taskCategory" class="form-select">
+                                <option value="">Kategori (frivilligt)...</option>
+                                <option value="work">Arbeta</option>
+                                <option value="home">Hem</option>
+                                <option value="health">Hälsa</option>
+                                <option value="finance">Finans</option>
+                                <option value="learning">Lärande</option>
+                            </select>
+                        </div>
                         <button id="createBtn" class="btn btn-primary w-100">Skapa</button>
                     </div>
                 </div>
@@ -77,6 +87,7 @@
                             ${t.dueDate ? `<span class="badge bg-warning ms-2">⏰ ${formatDate(t.dueDate)}</span>` : ''}
                             ${t.requestor ? `<span class="badge bg-info ms-2">👁 ${t.requestor}</span>` : ''}
                             ${t.priority > 1 ? `<span class="badge bg-danger ms-2">${getPriorityIcon(t.priority)} ${t.priority}</span>` : ''}
+                            ${t.category ? `<span class="badge bg-secondary ms-2">🏷 ${t.category}</span>` : ''}
                         </div>
                         <div class="btn-group btn-group-sm">
                             ${t.status !== 2 ? `<button class="btn btn-success btn-sm" onclick="updateStatus(${t.id}, 2)">✓</button>` : ''}
@@ -100,6 +111,7 @@
             const dueDate = document.getElementById('taskDueDate').value;
             const requestor = document.getElementById('taskRequestor').value;
             const priority = parseInt(document.getElementById('taskPriority').value);
+            const category = document.getElementById('taskCategory').value;
             if (!title || !assignee) {
                 showMessage('Titel och ansvarig krävs!', 'warning');
                 return;
@@ -108,6 +120,7 @@
                 const body = { title, assignee, priority };
                 if (dueDate) body.dueDate = dueDate;
                 if (requestor) body.requestor = requestor;
+                if (category) body.category = category;
                 const res = await fetch(API_URL + '/api/tasks', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -119,6 +132,7 @@
                     document.getElementById('taskDueDate').value = '';
                     document.getElementById('taskRequestor').value = '';
                     document.getElementById('taskPriority').value = '1';
+                    document.getElementById('taskCategory').value = '';
                     showMessage('Skapad!', 'success');
                     loadTasks();
                 }
