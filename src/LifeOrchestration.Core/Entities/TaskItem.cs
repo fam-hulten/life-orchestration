@@ -10,6 +10,7 @@ public class TaskItem
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? DueDate { get; set; }
     public PriorityLevel Priority { get; set; } = PriorityLevel.Medium;
+    public string? Category { get; set; }  // Kategori för gruppering
 }
 
 public enum TaskStatus
