@@ -10,7 +10,7 @@ if (argv.Count == 0)
     Console.WriteLine("Usage: pm <command> [options]");
     Console.WriteLine();
     Console.WriteLine("Commands:");
-    Console.WriteLine("  add <title> --assignee <name> [--due-date YYYY-MM-DD]    Add a new task");
+    Console.WriteLine("  add <title> --assignee <name> [--due-date YYYY-MM-DD] [--requestor <name>]  Add a new task");
     Console.WriteLine("  list [assignee]                 List tasks (optionally filtered by assignee)");
     Console.WriteLine("  start <id>                      Start a task (set status to in_progress)");
     Console.WriteLine("  done <id>                       Complete a task (set status to done)");
@@ -152,7 +152,8 @@ async Task ListTasks(List<string> args)
             _ => "[?]"
         };
         var dueStr = task.DueDate.HasValue ? $" | due: {task.DueDate.Value:yyyy-MM-dd}" : "";
-        Console.WriteLine($"{statusIcon} #{task.Id} | {task.Status,-12} | {task.Assignee,-10} | {task.Title}{dueStr}");
+        var reqStr = !string.IsNullOrEmpty(task.Requestor) ? $" | requestor: {task.Requestor}" : "";
+        Console.WriteLine($"{statusIcon} #{task.Id} | {task.Status,-12} | {task.Assignee,-10} | {task.Title}{dueStr}{reqStr}");
     }
 }
 
