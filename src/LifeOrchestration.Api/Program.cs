@@ -47,6 +47,7 @@ app.MapPost("/api/tasks", async (CreateTaskRequest request, AppDbContext db) =>
     {
         Title = request.Title,
         Assignee = request.Assignee,
+        Requestor = request.Requestor,  // Nytt: bevakare
         Status = CoreTaskStatus.Todo,
         CreatedAt = DateTime.UtcNow,
         DueDate = request.DueDate
@@ -65,6 +66,8 @@ app.MapPatch("/api/tasks/{id}", async (int id, UpdateTaskRequest request, AppDbC
         task.Status = request.Status.Value;
     if (request.DueDate.HasValue)
         task.DueDate = request.DueDate.Value;
+    if (request.Requestor is not null)
+        task.Requestor = request.Requestor;
     
     await db.SaveChangesAsync();
     return Results.Ok(task);
@@ -82,5 +85,5 @@ app.MapDelete("/api/tasks/{id}", async (int id, AppDbContext db) =>
 
 app.Run();
 
-public record CreateTaskRequest(string Title, string Assignee, DateTime? DueDate);
-public record UpdateTaskRequest(CoreTaskStatus? Status, DateTime? DueDate);
+public record CreateTaskRequest(string Title, string Assignee, DateTime? DueDate, string? Requestor);
+public record UpdateTaskRequest(CoreTaskStatus? Status, DateTime? DueDate, string? Requestor);
