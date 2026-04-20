@@ -47,10 +47,11 @@ app.MapPost("/api/tasks", async (CreateTaskRequest request, AppDbContext db) =>
     {
         Title = request.Title,
         Assignee = request.Assignee,
-        Requestor = request.Requestor,  // Nytt: bevakare
+        Requestor = request.Requestor,
         Status = CoreTaskStatus.Todo,
         CreatedAt = DateTime.UtcNow,
-        DueDate = request.DueDate
+        DueDate = request.DueDate,
+        Priority = request.Priority
     };
     db.Tasks.Add(task);
     await db.SaveChangesAsync();
@@ -68,6 +69,8 @@ app.MapPatch("/api/tasks/{id}", async (int id, UpdateTaskRequest request, AppDbC
         task.DueDate = request.DueDate.Value;
     if (request.Requestor is not null)
         task.Requestor = request.Requestor;
+    if (request.Priority.HasValue)
+        task.Priority = request.Priority.Value;
     
     await db.SaveChangesAsync();
     return Results.Ok(task);
@@ -85,5 +88,5 @@ app.MapDelete("/api/tasks/{id}", async (int id, AppDbContext db) =>
 
 app.Run();
 
-public record CreateTaskRequest(string Title, string Assignee, DateTime? DueDate, string? Requestor);
-public record UpdateTaskRequest(CoreTaskStatus? Status, DateTime? DueDate, string? Requestor);
+public record CreateTaskRequest(string Title, string Assignee, DateTime? DueDate, string? Requestor, PriorityLevel Priority);
+public record UpdateTaskRequest(CoreTaskStatus? Status, DateTime? DueDate, string? Requestor, PriorityLevel? Priority);

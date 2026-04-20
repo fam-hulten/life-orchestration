@@ -36,6 +36,22 @@
                         <div class="mb-2">
                             <input type="date" id="taskDueDate" class="form-control" placeholder="Förfallodatum (frivilligt)">
                         </div>
+                        <div class="mb-2">
+                            <select id="taskRequestor" class="form-select">
+                                <option value="">Bevakare (frivilligt)...</option>
+                                <option value="Robert">Robert</option>
+                                <option value="Lilly">Lilly</option>
+                                <option value="Johanna">Johanna</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <select id="taskPriority" class="form-select">
+                                <option value="1">Medium</option>
+                                <option value="0">Low</option>
+                                <option value="2">High</option>
+                                <option value="3">Critical</option>
+                            </select>
+                        </div>
                         <button id="createBtn" class="btn btn-primary w-100">Skapa</button>
                     </div>
                 </div>
@@ -59,6 +75,8 @@
                             <strong>${t.title}</strong>
                             <span class="text-muted ms-2">— ${t.assignee}</span>
                             ${t.dueDate ? `<span class="badge bg-warning ms-2">⏰ ${formatDate(t.dueDate)}</span>` : ''}
+                            ${t.requestor ? `<span class="badge bg-info ms-2">👁 ${t.requestor}</span>` : ''}
+                            ${t.priority > 1 ? `<span class="badge bg-danger ms-2">${getPriorityIcon(t.priority)} ${t.priority}</span>` : ''}
                         </div>
                         <div class="btn-group btn-group-sm">
                             ${t.status !== 2 ? `<button class="btn btn-success btn-sm" onclick="updateStatus(${t.id}, 2)">✓</button>` : ''}
@@ -80,13 +98,16 @@
             const title = document.getElementById('taskTitle').value;
             const assignee = document.getElementById('taskAssignee').value;
             const dueDate = document.getElementById('taskDueDate').value;
+            const requestor = document.getElementById('taskRequestor').value;
+            const priority = parseInt(document.getElementById('taskPriority').value);
             if (!title || !assignee) {
                 showMessage('Titel och ansvarig krävs!', 'warning');
                 return;
             }
             try {
-                const body = { title, assignee };
+                const body = { title, assignee, priority };
                 if (dueDate) body.dueDate = dueDate;
+                if (requestor) body.requestor = requestor;
                 const res = await fetch(API_URL + '/api/tasks', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -96,12 +117,18 @@
                     document.getElementById('taskTitle').value = '';
                     document.getElementById('taskAssignee').value = '';
                     document.getElementById('taskDueDate').value = '';
+                    document.getElementById('taskRequestor').value = '';
+                    document.getElementById('taskPriority').value = '1';
                     showMessage('Skapad!', 'success');
                     loadTasks();
                 }
             } catch (e) {
                 showMessage('Error: ' + e.message, 'danger');
             }
+        }
+        
+        function getPriorityIcon(priority) {
+            return ['🔽', '', '🔺', '🚨'][priority] || '';
         }
         
         function formatDate(dateStr) {

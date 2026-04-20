@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using CoreTaskStatus = LifeOrchestration.Core.Entities.TaskStatus;
+using PriorityLevel = LifeOrchestration.Core.Entities.PriorityLevel;
 
 var baseUrl = Environment.GetEnvironmentVariable("PM_API_URL") ?? "http://localhost:3080";
 var client = new HttpClient { BaseAddress = new Uri(baseUrl) };
@@ -10,7 +11,7 @@ if (argv.Count == 0)
     Console.WriteLine("Usage: pm <command> [options]");
     Console.WriteLine();
     Console.WriteLine("Commands:");
-    Console.WriteLine("  add <title> --assignee <name> [--due-date YYYY-MM-DD] [--requestor <name>]  Add a new task");
+    Console.WriteLine("  add <title> --assignee <name> [--due-date YYYY-MM-DD] [--requestor <name>] [--priority low|medium|high|critical]");
     Console.WriteLine("  list [assignee]                 List tasks (optionally filtered by assignee)");
     Console.WriteLine("  start <id>                      Start a task (set status to in_progress)");
     Console.WriteLine("  done <id>                       Complete a task (set status to done)");
@@ -51,6 +52,7 @@ async Task AddTask(List<string> args)
     var assignee = "";
     DateTime? dueDate = null;
     string? requestor = null;
+    int priority = 1; // Medium
 
     for (int i = 1; i < args.Count; i++)
     {
@@ -70,6 +72,18 @@ async Task AddTask(List<string> args)
             requestor = args[i + 1];
             i++; // Skip consumed value
         }
+        else if (args[i] == "--priority" && i + 1 < args.Count)
+        {
+            var p = args[i + 1].ToLower();
+            priority = p switch {
+                "low" => 0,
+                "medium" => 1,
+                "high" => 2,
+                "critical" => 3,
+                _ => 1
+            };
+            i++; // Skip consumed value
+        }
         else if (!args[i].StartsWith("--"))
         {
             title = args[i];
@@ -79,18 +93,19 @@ async Task AddTask(List<string> args)
     if (string.IsNullOrWhiteSpace(title))
     {
         Console.WriteLine("Error: Title is required");
-        Console.WriteLine("Usage: pm add <title> --assignee <name> [--due-date YYYY-MM-DD]");
+        Console.WriteLine("Usage: pm add <title> --assignee <name> [--due-date YYYY-MM-DD] [--requestor <name>] [--priority low|medium|high|critical]");
         return;
     }
 
     if (string.IsNullOrWhiteSpace(assignee))
     {
         Console.WriteLine("Error: Assignee is required");
-        Console.WriteLine("Usage: pm add <title> --assignee <name> [--due-date YYYY-MM-DD]");
+        Console.WriteLine("Usage: pm add <title> --assignee <name> [--due-date YYYY-MM-DD] [--requestor <name>] [--priority low|medium|high|critical]");
         return;
     }
 
-    var request = new { Title = title, Assignee = assignee, DueDate = dueDate, Requestor = requestor };
+    var priorityLevel = (PriorityLevel)priority;
+    var request = new { Title = title, Assignee = assignee, DueDate = dueDate, Requestor = requestor, Priority = priorityLevel };
     var response = await client.PostAsJsonAsync("/api/tasks", request);
 
     if (!response.IsSuccessStatusCode)
@@ -102,7 +117,8 @@ async Task AddTask(List<string> args)
     var task = await response.Content.ReadFromJsonAsync<TaskItem>();
     var dueStr = task!.DueDate.HasValue ? $", due: {task.DueDate.Value:yyyy-MM-dd}" : "";
     var reqStr = !string.IsNullOrEmpty(task.Requestor) ? $", requestor: {task.Requestor}" : "";
-    Console.WriteLine($"✓ Task #{task!.Id} created: \"{task.Title}\" (assignee: {task.Assignee}{dueStr}{reqStr})");
+    var priStr = task.Priority != PriorityLevel.Medium ? $", priority: {task.Priority}" : "";
+    Console.WriteLine($"✓ Task #{task!.Id} created: \"{task.Title}\" (assignee: {task.Assignee}{dueStr}{reqStr}{priStr})");
 }
 
 async Task ListTasks(List<string> args)
@@ -153,7 +169,8 @@ async Task ListTasks(List<string> args)
         };
         var dueStr = task.DueDate.HasValue ? $" | due: {task.DueDate.Value:yyyy-MM-dd}" : "";
         var reqStr = !string.IsNullOrEmpty(task.Requestor) ? $" | requestor: {task.Requestor}" : "";
-        Console.WriteLine($"{statusIcon} #{task.Id} | {task.Status,-12} | {task.Assignee,-10} | {task.Title}{dueStr}{reqStr}");
+        var priStr = task.Priority != PriorityLevel.Medium ? $" | prio: {task.Priority}" : "";
+        Console.WriteLine($"{statusIcon} #{task.Id} | {task.Status,-12} | {task.Assignee,-10} | {task.Title}{dueStr}{reqStr}{priStr}");
     }
 }
 
@@ -239,4 +256,5 @@ public class TaskItem
     public CoreTaskStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? DueDate { get; set; }
+    public PriorityLevel Priority { get; set; }
 }
