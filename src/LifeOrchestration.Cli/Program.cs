@@ -10,7 +10,7 @@ if (argv.Count == 0)
     Console.WriteLine("Usage: pm <command> [options]");
     Console.WriteLine();
     Console.WriteLine("Commands:");
-    Console.WriteLine("  add <title> --assignee <name>    Add a new task");
+    Console.WriteLine("  add <title> --assignee <name> [--due-date YYYY-MM-DD]    Add a new task");
     Console.WriteLine("  list [assignee]                 List tasks (optionally filtered by assignee)");
     Console.WriteLine("  start <id>                      Start a task (set status to in_progress)");
     Console.WriteLine("  done <id>                       Complete a task (set status to done)");
@@ -49,12 +49,19 @@ async Task AddTask(List<string> args)
 {
     var title = "";
     var assignee = "";
+    DateTime? dueDate = null;
 
     for (int i = 1; i < args.Count; i++)
     {
         if (args[i] == "--assignee" && i + 1 < args.Count)
         {
             assignee = args[i + 1];
+            i++; // Skip consumed value
+        }
+        else if (args[i] == "--due-date" && i + 1 < args.Count)
+        {
+            if (DateTime.TryParse(args[i + 1], out var parsed))
+                dueDate = parsed;
             i++; // Skip consumed value
         }
         else if (!args[i].StartsWith("--"))
@@ -66,18 +73,18 @@ async Task AddTask(List<string> args)
     if (string.IsNullOrWhiteSpace(title))
     {
         Console.WriteLine("Error: Title is required");
-        Console.WriteLine("Usage: pm add <title> --assignee <name>");
+        Console.WriteLine("Usage: pm add <title> --assignee <name> [--due-date YYYY-MM-DD]");
         return;
     }
 
     if (string.IsNullOrWhiteSpace(assignee))
     {
         Console.WriteLine("Error: Assignee is required");
-        Console.WriteLine("Usage: pm add <title> --assignee <name>");
+        Console.WriteLine("Usage: pm add <title> --assignee <name> [--due-date YYYY-MM-DD]");
         return;
     }
 
-    var request = new { Title = title, Assignee = assignee };
+    var request = new { Title = title, Assignee = assignee, DueDate = dueDate };
     var response = await client.PostAsJsonAsync("/api/tasks", request);
 
     if (!response.IsSuccessStatusCode)
@@ -87,7 +94,8 @@ async Task AddTask(List<string> args)
     }
 
     var task = await response.Content.ReadFromJsonAsync<TaskItem>();
-    Console.WriteLine($"✓ Task #{task!.Id} created: \"{task.Title}\" (assignee: {task.Assignee})");
+    var dueStr = task!.DueDate.HasValue ? $", due: {task.DueDate.Value:yyyy-MM-dd}" : "";
+    Console.WriteLine($"✓ Task #{task!.Id} created: \"{task.Title}\" (assignee: {task.Assignee}{dueStr})");
 }
 
 async Task ListTasks(List<string> args)
@@ -136,7 +144,8 @@ async Task ListTasks(List<string> args)
             CoreTaskStatus.Done => "[✓]",
             _ => "[?]"
         };
-        Console.WriteLine($"{statusIcon} #{task.Id} | {task.Status,-12} | {task.Assignee,-10} | {task.Title}");
+        var dueStr = task.DueDate.HasValue ? $" | due: {task.DueDate.Value:yyyy-MM-dd}" : "";
+        Console.WriteLine($"{statusIcon} #{task.Id} | {task.Status,-12} | {task.Assignee,-10} | {task.Title}{dueStr}");
     }
 }
 
@@ -220,4 +229,5 @@ public class TaskItem
     public string Assignee { get; set; } = "";
     public CoreTaskStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateTime? DueDate { get; set; }
 }

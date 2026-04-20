@@ -1,25 +1,11 @@
-using LifeOrchestration.Web.Components;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using LifeOrchestration.Web;
+using LifeOrchestration.Web.Pages;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebAssemblyBlazorWebAssemblyHost.CreateDefaultBuilder();
+builder.RootComponents.Add<App>("#app");
+builder.RootComponents.AddJavaScriptInitializers("./framework/initBlazor.js");
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("http://192.168.1.194:3080") });
 
-// Add services
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
-
-// Configure minimal antiforgery
-builder.Services.AddAntiforgery(options => 
-{
-    options.Cookie.Name = "lo.antiforgery";
-    options.Cookie.HttpOnly = true;
-    options.Cookie.SameSite = SameSiteMode.Lax;
-});
-
-var app = builder.Build();
-
-app.UseAntiforgery();
-
-app.MapStaticAssets();
-app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
-
-app.Run();
+await builder.Build().RunAsync();

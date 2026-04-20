@@ -2,6 +2,7 @@
 @using System.Net.Http.Json
 @using LifeOrchestration.Core.Entities
 @using TaskStatus = LifeOrchestration.Core.Entities.TaskStatus
+@inject HttpClient Http
 
 <PageTitle>Tasks - Life Orchestration</PageTitle>
 
@@ -69,8 +70,8 @@
                             <option value="Johanna">Johanna</option>
                         </select>
                     </div>
-                    <button type="button" class="btn btn-primary w-100" @onclick="HandleCreateClick">
-                        Skapa (click count: @clickCount)
+                    <button type="button" class="btn btn-primary w-100" @onclick="CreateTask">
+                        Skapa
                     </button>
                     @if (!string.IsNullOrEmpty(statusMessage))
                     {
@@ -87,26 +88,17 @@
     private string newTitle = "";
     private string newAssignee = "";
     private string statusMessage = "";
-    private int clickCount = 0;
-    
-    private HttpClient httpClient = new() { BaseAddress = new Uri("http://host.docker.internal:3080") };
     
     protected override async Task OnInitializedAsync()
     {
         await LoadTasks();
     }
     
-    private void HandleCreateClick()
-    {
-        clickCount++;
-        statusMessage = $"Clicked! count={clickCount}, title='{newTitle}', assignee='{newAssignee}'";
-    }
-    
     private async Task LoadTasks()
     {
         try
         {
-            tasks = await httpClient.GetFromJsonAsync<List<TaskItem>>("/api/tasks");
+            tasks = await Http.GetFromJsonAsync<List<TaskItem>>("/api/tasks");
             statusMessage = "";
         }
         catch (Exception ex)
@@ -117,8 +109,6 @@
     
     private async Task CreateTask()
     {
-        statusMessage = $"Creating... title='{newTitle}', assignee='{newAssignee}'";
-        
         if (string.IsNullOrWhiteSpace(newTitle) || string.IsNullOrWhiteSpace(newAssignee))
         {
             statusMessage = "Titel och ansvarig krävs!";
@@ -127,7 +117,7 @@
         
         try
         {
-            var response = await httpClient.PostAsJsonAsync("/api/tasks", new { Title = newTitle, Assignee = newAssignee });
+            var response = await Http.PostAsJsonAsync("/api/tasks", new { Title = newTitle, Assignee = newAssignee });
             if (response.IsSuccessStatusCode)
             {
                 newTitle = "";
@@ -150,7 +140,7 @@
     {
         try
         {
-            await httpClient.PatchAsJsonAsync($"/api/tasks/{id}", new { Status = status });
+            await Http.PatchAsJsonAsync($"/api/tasks/{id}", new { Status = status });
             await LoadTasks();
         }
         catch (Exception ex)
@@ -163,7 +153,7 @@
     {
         try
         {
-            await httpClient.DeleteAsync($"/api/tasks/{id}");
+            await Http.DeleteAsync($"/api/tasks/{id}");
             await LoadTasks();
         }
         catch (Exception ex)

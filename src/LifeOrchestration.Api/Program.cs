@@ -8,9 +8,24 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite("Data Source=data/lifeorchestration.db"));
+
+// Add CORS for Blazor WASM client
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+// Enable CORS
+app.UseCors();
 
 // Ensure database is created
 using (var scope = app.Services.CreateScope())
@@ -33,7 +48,8 @@ app.MapPost("/api/tasks", async (CreateTaskRequest request, AppDbContext db) =>
         Title = request.Title,
         Assignee = request.Assignee,
         Status = CoreTaskStatus.Todo,
-        CreatedAt = DateTime.UtcNow
+        CreatedAt = DateTime.UtcNow,
+        DueDate = request.DueDate
     };
     db.Tasks.Add(task);
     await db.SaveChangesAsync();
@@ -47,6 +63,8 @@ app.MapPatch("/api/tasks/{id}", async (int id, UpdateTaskRequest request, AppDbC
     
     if (request.Status.HasValue)
         task.Status = request.Status.Value;
+    if (request.DueDate.HasValue)
+        task.DueDate = request.DueDate.Value;
     
     await db.SaveChangesAsync();
     return Results.Ok(task);
@@ -64,5 +82,5 @@ app.MapDelete("/api/tasks/{id}", async (int id, AppDbContext db) =>
 
 app.Run();
 
-public record CreateTaskRequest(string Title, string Assignee);
-public record UpdateTaskRequest(CoreTaskStatus? Status);
+public record CreateTaskRequest(string Title, string Assignee, DateTime? DueDate);
+public record UpdateTaskRequest(CoreTaskStatus? Status, DateTime? DueDate);
