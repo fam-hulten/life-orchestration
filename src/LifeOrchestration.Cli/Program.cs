@@ -50,6 +50,7 @@ async Task AddTask(List<string> args)
     var title = "";
     var assignee = "";
     DateTime? dueDate = null;
+    string? requestor = null;
 
     for (int i = 1; i < args.Count; i++)
     {
@@ -62,6 +63,11 @@ async Task AddTask(List<string> args)
         {
             if (DateTime.TryParse(args[i + 1], out var parsed))
                 dueDate = parsed;
+            i++; // Skip consumed value
+        }
+        else if (args[i] == "--requestor" && i + 1 < args.Count)
+        {
+            requestor = args[i + 1];
             i++; // Skip consumed value
         }
         else if (!args[i].StartsWith("--"))
@@ -84,7 +90,7 @@ async Task AddTask(List<string> args)
         return;
     }
 
-    var request = new { Title = title, Assignee = assignee, DueDate = dueDate };
+    var request = new { Title = title, Assignee = assignee, DueDate = dueDate, Requestor = requestor };
     var response = await client.PostAsJsonAsync("/api/tasks", request);
 
     if (!response.IsSuccessStatusCode)
@@ -95,7 +101,8 @@ async Task AddTask(List<string> args)
 
     var task = await response.Content.ReadFromJsonAsync<TaskItem>();
     var dueStr = task!.DueDate.HasValue ? $", due: {task.DueDate.Value:yyyy-MM-dd}" : "";
-    Console.WriteLine($"✓ Task #{task!.Id} created: \"{task.Title}\" (assignee: {task.Assignee}{dueStr})");
+    var reqStr = !string.IsNullOrEmpty(task.Requestor) ? $", requestor: {task.Requestor}" : "";
+    Console.WriteLine($"✓ Task #{task!.Id} created: \"{task.Title}\" (assignee: {task.Assignee}{dueStr}{reqStr})");
 }
 
 async Task ListTasks(List<string> args)
@@ -227,6 +234,7 @@ public class TaskItem
     public int Id { get; set; }
     public string Title { get; set; } = "";
     public string Assignee { get; set; } = "";
+    public string? Requestor { get; set; }
     public CoreTaskStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? DueDate { get; set; }
