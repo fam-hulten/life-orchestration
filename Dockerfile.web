@@ -7,12 +7,10 @@ COPY src/LifeOrchestration.Web/LifeOrchestration.Web.csproj src/LifeOrchestratio
 RUN dotnet restore src/LifeOrchestration.Web/LifeOrchestration.Web.csproj
 
 COPY src/ src/
-RUN dotnet publish src/LifeOrchestration.Web/LifeOrchestration.Web.csproj -c Release -o /app
+RUN dotnet publish src/LifeOrchestration.Web/LifeOrchestration.Web.csproj -c Release -o /app/static
 
-FROM mcr.microsoft.com/dotnet/aspnet:9.0
-WORKDIR /app
-COPY --from=build /app .
+FROM nginx:alpine
+COPY --from=build /app/static/wwwroot /usr/share/nginx/html
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 8080
-ENV ASPNETCORE_URLS=http://+:8080
-ENTRYPOINT ["dotnet", "LifeOrchestration.Web.dll"]
+EXPOSE 80
