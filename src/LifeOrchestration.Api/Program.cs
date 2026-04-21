@@ -35,8 +35,35 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Map task endpoints
-app.MapGet("/api/tasks", async (AppDbContext db) =>
-    await db.Tasks.OrderByDescending(t => t.CreatedAt).ToListAsync());
+app.MapGet("/api/tasks", async (
+    AppDbContext db,
+    string? search,
+    string? assignee,
+    string? category,
+    CoreTaskStatus? status,
+    DateTime? duebefore,
+    DateTime? dueafter,
+    bool? overdue) =>
+{
+    var query = db.Tasks.AsQueryable();
+
+    if (!string.IsNullOrWhiteSpace(search))
+        query = query.Where(t => t.Title.Contains(search) || (t.Description != null && t.Description.Contains(search)));
+    if (!string.IsNullOrWhiteSpace(assignee))
+        query = query.Where(t => t.Assignee == assignee);
+    if (!string.IsNullOrWhiteSpace(category))
+        query = query.Where(t => t.Category == category);
+    if (status.HasValue)
+        query = query.Where(t => t.Status == status.Value);
+    if (duebefore.HasValue)
+        query = query.Where(t => t.DueDate.HasValue && t.DueDate.Value <= duebefore.Value);
+    if (dueafter.HasValue)
+        query = query.Where(t => t.DueDate.HasValue && t.DueDate.Value >= dueafter.Value);
+    if (overdue == true)
+        query = query.Where(t => t.DueDate.HasValue && t.DueDate.Value < DateTime.UtcNow && t.Status != CoreTaskStatus.Done);
+
+    return await query.OrderByDescending(t => t.CreatedAt).ToListAsync();
+});
 
 app.MapGet("/api/tasks/{id}", async (int id, AppDbContext db) =>
     await db.Tasks.FindAsync(id) is { } task ? Results.Ok(task) : Results.NotFound());
