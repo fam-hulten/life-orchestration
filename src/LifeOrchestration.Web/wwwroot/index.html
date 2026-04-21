@@ -5,9 +5,322 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Life Orchestration</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .badge-priority { font-size: 0.75rem; }
+        .task-card { transition: transform 0.2s; }
+        .task-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .filter-section { background: #f8f9fa; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; }
+    </style>
 </head>
 <body>
-    <div id="app">Laddar...</div>
-    <script src="_framework/blazor.webassembly.js"></script>
+    <div class="container py-4">
+        <h1 class="mb-4">📋 Life Orchestration</h1>
+        
+        <!-- Create Task Form -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Ny uppgift</h5>
+                <form id="taskForm" class="row g-3">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" id="title" placeholder="Titel" required>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" id="assignee">
+                            <option value="robert">Robert</option>
+                            <option value="lilly">Lilly</option>
+                            <option value="johanna">Johanna</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="text" class="form-control" id="requestor" placeholder="Beställare">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="date" class="form-control" id="dueDate">
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" id="priority">
+                            <option value="0">Ingen</option>
+                            <option value="1">🔴 Kritisk</option>
+                            <option value="2" selected>🟡 Hög</option>
+                            <option value="3">🟢 Medium</option>
+                            <option value="4">⚪ Low</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" id="category">
+                            <option value="development">Utveckling</option>
+                            <option value="home">Hem</option>
+                            <option value="administration">Administration</option>
+                            <option value="test">Test</option>
+                            <option value="other">Övrigt</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <textarea class="form-control" id="description" placeholder="Beskrivning" rows="2"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">Lägg till</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filter-section">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <input type="text" class="form-control" id="searchFilter" placeholder="Sök...">
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" id="filterAssignee">
+                        <option value="">Alla assignee</option>
+                        <option value="robert">Robert</option>
+                        <option value="lilly">Lilly</option>
+                        <option value="johanna">Johanna</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" id="filterCategory">
+                        <option value="">Alla kategorier</option>
+                        <option value="development">Utveckling</option>
+                        <option value="home">Hem</option>
+                        <option value="administration">Administration</option>
+                        <option value="test">Test</option>
+                        <option value="other">Övrigt</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="date" class="form-control" id="filterDueBefore" placeholder="Före">
+                </div>
+                <div class="col-md-2">
+                    <input type="date" class="form-control" id="filterDueAfter" placeholder="Efter">
+                </div>
+                <div class="col-md-1">
+                    <button class="btn btn-outline-secondary w-100" onclick="loadTasks()">🔄</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task List -->
+        <div id="taskList" class="row"></div>
+        
+        <!-- Loading indicator -->
+        <div id="loading" class="text-center py-4" style="display:none;">
+            <div class="spinner-border" role="status"></div>
+        </div>
+        
+        <!-- Error message -->
+        <div id="error" class="alert alert-danger" style="display:none;"></div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.protocol === 'https:' ? 'https://' + window.location.host : 'http://' + window.location.host;
+        const API_URL = API_BASE.includes('3081') ? 'http://localhost:3080' : API_BASE;
+
+        let allTasks = [];
+
+        // Load tasks on page load
+        document.addEventListener('DOMContentLoaded', loadTasks);
+
+        // Handle form submit
+        document.getElementById('taskForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const task = {
+                title: document.getElementById('title').value,
+                assignee: document.getElementById('assignee').value,
+                requestor: document.getElementById('requestor').value,
+                dueDate: document.getElementById('dueDate').value || null,
+                priority: parseInt(document.getElementById('priority').value),
+                category: document.getElementById('category').value,
+                description: document.getElementById('description').value
+            };
+
+            try {
+                const response = await fetch(API_URL + '/api/tasks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(task)
+                });
+
+                if (response.ok) {
+                    document.getElementById('taskForm').reset();
+                    document.getElementById('priority').value = '2';
+                    loadTasks();
+                } else {
+                    showError('Kunde inte skapa uppgift');
+                }
+            } catch (err) {
+                showError('Fel: ' + err.message);
+            }
+        });
+
+        // Filter event listeners
+        ['searchFilter', 'filterAssignee', 'filterCategory', 'filterDueBefore', 'filterDueAfter'].forEach(id => {
+            document.getElementById(id).addEventListener('input', filterTasks);
+            document.getElementById(id).addEventListener('change', filterTasks);
+        });
+
+        async function loadTasks() {
+            showLoading(true);
+            hideError();
+
+            try {
+                let url = API_URL + '/api/tasks';
+                const params = new URLSearchParams();
+
+                const search = document.getElementById('searchFilter').value;
+                const assignee = document.getElementById('filterAssignee').value;
+                const category = document.getElementById('filterCategory').value;
+                const dueBefore = document.getElementById('filterDueBefore').value;
+                const dueAfter = document.getElementById('filterDueAfter').value;
+
+                if (search) params.append('search', search);
+                if (assignee) params.append('assignee', assignee);
+                if (category) params.append('category', category);
+                if (dueBefore) params.append('duebefore', dueBefore);
+                if (dueAfter) params.append('dueafter', dueAfter);
+
+                if (params.toString()) url += '?' + params.toString();
+
+                const response = await fetch(url);
+                if (response.ok) {
+                    allTasks = await response.json();
+                    displayTasks(allTasks);
+                } else {
+                    showError('Kunde inte ladda uppgifter');
+                }
+            } catch (err) {
+                showError('Fel: ' + err.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function filterTasks() {
+            let filtered = [...allTasks];
+
+            const search = document.getElementById('searchFilter').value.toLowerCase();
+            const assignee = document.getElementById('filterAssignee').value;
+            const category = document.getElementById('filterCategory').value;
+            const dueBefore = document.getElementById('filterDueBefore').value;
+            const dueAfter = document.getElementById('filterDueAfter').value;
+
+            if (search) {
+                filtered = filtered.filter(t => 
+                    (t.title && t.title.toLowerCase().includes(search)) ||
+                    (t.description && t.description.toLowerCase().includes(search))
+                );
+            }
+
+            if (assignee) {
+                filtered = filtered.filter(t => t.assignee === assignee);
+            }
+
+            if (category) {
+                filtered = filtered.filter(t => t.category === category);
+            }
+
+            if (dueBefore) {
+                const dueBeforeDate = new Date(dueBefore);
+                filtered = filtered.filter(t => t.dueDate && new Date(t.dueDate) <= dueBeforeDate);
+            }
+
+            if (dueAfter) {
+                const dueAfterDate = new Date(dueAfter);
+                filtered = filtered.filter(t => t.dueDate && new Date(t.dueDate) >= dueAfterDate);
+            }
+
+            displayTasks(filtered);
+        }
+
+        function displayTasks(tasks) {
+            const container = document.getElementById('taskList');
+            
+            if (tasks.length === 0) {
+                container.innerHTML = '<div class="col-12 text-center text-muted py-4">Inga uppgifter</div>';
+                return;
+            }
+
+            const priorityLabels = ['', '🔴 Kritisk', '🟡 Hög', '🟢 Medium', '⚪ Low'];
+            const priorityColors = ['', 'danger', 'warning', 'success', 'secondary'];
+            const categoryLabels = { development: 'Utveckling', home: 'Hem', administration: 'Admin', test: 'Test', other: 'Övrigt' };
+
+            container.innerHTML = tasks.map(task => `
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card task-card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="card-title mb-0">${escapeHtml(task.title)}</h6>
+                                <span class="badge bg-${priorityColors[task.priority] || 'secondary'} badge-priority">${priorityLabels[task.priority] || 'Ingen'}</span>
+                            </div>
+                            <div class="mb-2">
+                                <span class="badge bg-primary me-1">👤 ${escapeHtml(task.assignee || '-')}</span>
+                                <span class="badge bg-info me-1">📝 ${escapeHtml(task.requestor || '-')}</span>
+                                <span class="badge bg-secondary">📁 ${categoryLabels[task.category] || task.category || '-'}</span>
+                            </div>
+                            ${task.dueDate ? `<small class="text-muted">📅 ${formatDate(task.dueDate)}</small>` : ''}
+                            ${task.description ? `<p class="card-text small text-muted mt-2 mb-0">${escapeHtml(task.description)}</p>` : ''}
+                        </div>
+                        <div class="card-footer bg-white border-top-0">
+                            <div class="btn-group btn-group-sm w-100">
+                                <button class="btn btn-outline-success" onclick="updateTask(${task.id}, 1)">✅ Klar</button>
+                                <button class="btn btn-outline-danger" onclick="deleteTask(${task.id})">🗑️</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function updateTask(id, status) {
+            try {
+                const response = await fetch(API_URL + '/api/tasks/' + id, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: status })
+                });
+                if (response.ok) loadTasks();
+            } catch (err) {
+                showError('Fel: ' + err.message);
+            }
+        }
+
+        async function deleteTask(id) {
+            if (!confirm('Ta bort uppgift?')) return;
+            try {
+                const response = await fetch(API_URL + '/api/tasks/' + id, { method: 'DELETE' });
+                if (response.ok) loadTasks();
+            } catch (err) {
+                showError('Fel: ' + err.message);
+            }
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function showError(msg) {
+            document.getElementById('error').textContent = msg;
+            document.getElementById('error').style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('sv-SE');
+        }
+    </script>
 </body>
 </html>
