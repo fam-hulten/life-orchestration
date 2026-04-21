@@ -14,7 +14,7 @@ services:
       context: .
       dockerfile: Dockerfile.web
     ports:
-      - "3081:8080"
+      - "3081:80"
     volumes:
       - ./data:/app/data
     restart: unless-stopped
