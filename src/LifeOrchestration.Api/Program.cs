@@ -52,7 +52,8 @@ app.MapPost("/api/tasks", async (CreateTaskRequest request, AppDbContext db) =>
         CreatedAt = DateTime.UtcNow,
         DueDate = request.DueDate,
         Priority = request.Priority,
-        Category = request.Category
+        Category = request.Category,
+        Description = request.Description
     };
     db.Tasks.Add(task);
     await db.SaveChangesAsync();
@@ -74,6 +75,8 @@ app.MapPatch("/api/tasks/{id}", async (int id, UpdateTaskRequest request, AppDbC
         task.Priority = request.Priority.Value;
     if (request.Category is not null)
         task.Category = request.Category;
+    if (request.Description is not null)
+        task.Description = request.Description;
     
     await db.SaveChangesAsync();
     return Results.Ok(task);
@@ -91,5 +94,5 @@ app.MapDelete("/api/tasks/{id}", async (int id, AppDbContext db) =>
 
 app.Run();
 
-public record CreateTaskRequest(string Title, string Assignee, DateTime? DueDate, string? Requestor, PriorityLevel Priority, string? Category);
-public record UpdateTaskRequest(CoreTaskStatus? Status, DateTime? DueDate, string? Requestor, PriorityLevel? Priority, string? Category);
+public record CreateTaskRequest(string Title, string Assignee, DateTime? DueDate, string? Requestor, PriorityLevel Priority, string? Category, string? Description);
+public record UpdateTaskRequest(CoreTaskStatus? Status, DateTime? DueDate, string? Requestor, PriorityLevel? Priority, string? Category, string? Description);
