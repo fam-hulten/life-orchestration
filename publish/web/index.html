@@ -12,6 +12,9 @@
         
         <div class="row mt-4">
             <div class="col-md-8">
+                <div class="mb-3">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Sök..." oninput="filterTasks()">
+                </div>
                 <h3>Tasks</h3>
                 <ul id="taskList" class="list-group"></ul>
             </div>
@@ -75,13 +78,36 @@
 
     <script>
         const API_URL = 'http://192.168.1.194:3080';
+        let allTasks = [];
         
         async function loadTasks() {
             try {
                 const res = await fetch(API_URL + '/api/tasks');
-                const tasks = await res.json();
-                const list = document.getElementById('taskList');
-                list.innerHTML = tasks.map(t => `
+                allTasks = await res.json();
+                filterTasks();
+            } catch (e) {
+                showMessage('Error: ' + e.message, 'danger');
+            }
+        }
+        
+        function filterTasks() {
+            const searchText = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allTasks.filter(t => 
+                t.title.toLowerCase().includes(searchText) ||
+                t.assignee.toLowerCase().includes(searchText) ||
+                (t.description && t.description.toLowerCase().includes(searchText)) ||
+                (t.category && t.category.toLowerCase().includes(searchText))
+            );
+            renderTasks(filtered);
+        }
+        
+        function renderTasks(tasks) {
+            const list = document.getElementById('taskList');
+            if (tasks.length === 0) {
+                list.innerHTML = '<li class="list-group-item text-muted">Inga tasks hittades.</li>';
+                return;
+            }
+            list.innerHTML = tasks.map(t => `
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         <div>
                             <span class="me-2">${getStatusIcon(t.status)}</span>
@@ -100,9 +126,6 @@
                         </div>
                     </li>
                 `).join('');
-            } catch (e) {
-                showMessage('Error: ' + e.message, 'danger');
-            }
         }
         
         function getStatusIcon(status) {
