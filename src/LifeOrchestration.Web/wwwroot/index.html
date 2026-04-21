@@ -115,7 +115,7 @@
 
     <script>
         const API_BASE = window.location.protocol === 'https:' ? 'https://' + window.location.host : 'http://' + window.location.host;
-        const API_URL = API_BASE.includes('3081') ? 'http://localhost:3080' : API_BASE;
+        const API_URL = ''; // Use relative URLs - nginx proxies /api
 
         let allTasks = [];
 
