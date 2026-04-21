@@ -62,6 +62,9 @@
                                 <option value="learning">Lärande</option>
                             </select>
                         </div>
+                        <div class="mb-2">
+                            <textarea id="taskDescription" class="form-control" placeholder="Beskrivning (frivilligt)" rows="2"></textarea>
+                        </div>
                         <button id="createBtn" class="btn btn-primary w-100">Skapa</button>
                     </div>
                 </div>
@@ -88,6 +91,7 @@
                             ${t.requestor ? `<span class="badge bg-info ms-2">👁 ${t.requestor}</span>` : ''}
                             ${t.priority > 1 ? `<span class="badge bg-danger ms-2">${getPriorityIcon(t.priority)} ${t.priority}</span>` : ''}
                             ${t.category ? `<span class="badge bg-secondary ms-2">🏷 ${t.category}</span>` : ''}
+                            ${t.description ? `<div class="text-muted small mt-1">📝 ${t.description}</div>` : ''}
                         </div>
                         <div class="btn-group btn-group-sm">
                             ${t.status !== 2 ? `<button class="btn btn-success btn-sm" onclick="updateStatus(${t.id}, 2)">✓</button>` : ''}
@@ -112,12 +116,13 @@
             const requestor = document.getElementById('taskRequestor').value;
             const priority = parseInt(document.getElementById('taskPriority').value);
             const category = document.getElementById('taskCategory').value;
+            const description = document.getElementById('taskDescription').value;
             if (!title || !assignee) {
                 showMessage('Titel och ansvarig krävs!', 'warning');
                 return;
             }
             try {
-                const body = { title, assignee, priority };
+                const body = { title, assignee, priority, description };
                 if (dueDate) body.dueDate = dueDate;
                 if (requestor) body.requestor = requestor;
                 if (category) body.category = category;
@@ -133,6 +138,7 @@
                     document.getElementById('taskRequestor').value = '';
                     document.getElementById('taskPriority').value = '1';
                     document.getElementById('taskCategory').value = '';
+                    document.getElementById('taskDescription').value = '';
                     showMessage('Skapad!', 'success');
                     loadTasks();
                 }
