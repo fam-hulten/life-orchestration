@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using LifeOrchestration.Infrastructure.Data;
 using LifeOrchestration.Core.Entities;
 using CoreTaskStatus = LifeOrchestration.Core.Entities.TaskStatus;
+using RecurrencePattern = LifeOrchestration.Core.Entities.RecurrencePattern;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,7 +44,9 @@ app.MapGet("/api/tasks", async (
     CoreTaskStatus? status,
     DateTime? duebefore,
     DateTime? dueafter,
-    bool? overdue) =>
+    bool? overdue,
+    int? parenttaskid,
+    bool? recurrent) =>
 {
     var query = db.Tasks.AsQueryable();
 
@@ -61,6 +64,10 @@ app.MapGet("/api/tasks", async (
         query = query.Where(t => t.DueDate.HasValue && t.DueDate.Value >= dueafter.Value);
     if (overdue == true)
         query = query.Where(t => t.DueDate.HasValue && t.DueDate.Value < DateTime.UtcNow && t.Status != CoreTaskStatus.Done);
+    if (parenttaskid.HasValue)
+        query = query.Where(t => t.ParentTaskId == parenttaskid.Value);
+    if (recurrent == true)
+        query = query.Where(t => t.RecurrencePattern.HasValue);
 
     return await query.OrderByDescending(t => t.CreatedAt).ToListAsync();
 });
@@ -80,7 +87,11 @@ app.MapPost("/api/tasks", async (CreateTaskRequest request, AppDbContext db) =>
         DueDate = request.DueDate,
         Priority = request.Priority,
         Category = request.Category,
-        Description = request.Description
+        Description = request.Description,
+        RecurrencePattern = request.RecurrencePattern,
+        RecurrenceInterval = request.RecurrenceInterval,
+        ParentTaskId = request.ParentTaskId,
+        NextDueDate = request.NextDueDate
     };
     db.Tasks.Add(task);
     await db.SaveChangesAsync();
@@ -104,10 +115,53 @@ app.MapPatch("/api/tasks/{id}", async (int id, UpdateTaskRequest request, AppDbC
         task.Category = request.Category;
     if (request.Description is not null)
         task.Description = request.Description;
+    if (request.RecurrenceInterval.HasValue)
+        task.RecurrenceInterval = request.RecurrenceInterval.Value;
+    if (request.NextDueDate.HasValue)
+        task.NextDueDate = request.NextDueDate.Value;
+    
+    // When a recurring task is marked Done, create the next instance
+    if (request.Status.HasValue && request.Status.Value == CoreTaskStatus.Done && task.RecurrencePattern.HasValue)
+    {
+        var nextDueDate = CalculateNextDueDate(task.DueDate, task.RecurrencePattern.Value, task.RecurrenceInterval);
+        var nextTask = new TaskItem
+        {
+            Title = task.Title,
+            Assignee = task.Assignee,
+            Requestor = task.Requestor,
+            Status = CoreTaskStatus.Todo,
+            CreatedAt = DateTime.UtcNow,
+            DueDate = nextDueDate,
+            Priority = task.Priority,
+            Category = task.Category,
+            Description = task.Description,
+            RecurrencePattern = task.RecurrencePattern,
+            RecurrenceInterval = task.RecurrenceInterval,
+            ParentTaskId = task.ParentTaskId ?? task.Id,
+            NextDueDate = CalculateNextDueDate(nextDueDate, task.RecurrencePattern.Value, task.RecurrenceInterval)
+        };
+        db.Tasks.Add(nextTask);
+        
+        // Also update the completed task's NextDueDate
+        task.NextDueDate = nextDueDate;
+    }
     
     await db.SaveChangesAsync();
     return Results.Ok(task);
 });
+
+static DateTime CalculateNextDueDate(DateTime? currentDue, RecurrencePattern pattern, int interval)
+{
+    var baseDate = currentDue ?? DateTime.UtcNow;
+    return pattern switch
+    {
+        RecurrencePattern.Daily => baseDate.AddDays(interval),
+        RecurrencePattern.Weekly => baseDate.AddDays(7 * interval),
+        RecurrencePattern.Monthly => baseDate.AddMonths(interval),
+        RecurrencePattern.Yearly => baseDate.AddYears(interval),
+        _ => baseDate.AddDays(interval)
+    };
+}
 
 app.MapDelete("/api/tasks/{id}", async (int id, AppDbContext db) =>
 {
@@ -121,5 +175,5 @@ app.MapDelete("/api/tasks/{id}", async (int id, AppDbContext db) =>
 
 app.Run();
 
-public record CreateTaskRequest(string Title, string Assignee, DateTime? DueDate, string? Requestor, PriorityLevel Priority, string? Category, string? Description);
-public record UpdateTaskRequest(CoreTaskStatus? Status, DateTime? DueDate, string? Requestor, PriorityLevel? Priority, string? Category, string? Description);
+public record CreateTaskRequest(string Title, string Assignee, DateTime? DueDate, string? Requestor, PriorityLevel Priority, string? Category, string? Description, RecurrencePattern? RecurrencePattern, int RecurrenceInterval, int? ParentTaskId, DateTime? NextDueDate);
+public record UpdateTaskRequest(CoreTaskStatus? Status, DateTime? DueDate, string? Requestor, PriorityLevel? Priority, string? Category, string? Description, int? RecurrenceInterval, DateTime? NextDueDate);

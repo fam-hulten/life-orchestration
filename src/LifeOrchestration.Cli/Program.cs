@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using CoreTaskStatus = LifeOrchestration.Core.Entities.TaskStatus;
 using PriorityLevel = LifeOrchestration.Core.Entities.PriorityLevel;
+using RecurrencePattern = LifeOrchestration.Core.Entities.RecurrencePattern;
 
 var baseUrl = Environment.GetEnvironmentVariable("PM_API_URL") ?? "http://localhost:3080";
 var client = new HttpClient { BaseAddress = new Uri(baseUrl) };
@@ -11,7 +12,7 @@ if (argv.Count == 0)
     Console.WriteLine("Usage: pm <command> [options]");
     Console.WriteLine();
     Console.WriteLine("Commands:");
-    Console.WriteLine("  add <title> --assignee <name> [--due-date YYYY-MM-DD] [--requestor <name>] [--priority low|medium|high|critical] [--category <name>] [--description <text>]");
+    Console.WriteLine("  add <title> --assignee <name> [--due-date YYYY-MM-DD] [--requestor <name>] [--priority low|medium|high|critical] [--category <name>] [--description <text>] [--recurrence daily|weekly|monthly|yearly] [--interval <N>]");
     Console.WriteLine("  list [assignee]                 List tasks (optionally filtered by assignee)");
     Console.WriteLine("  start <id>                      Start a task (set status to in_progress)");
     Console.WriteLine("  done <id>                       Complete a task (set status to done)");
@@ -55,6 +56,8 @@ async Task AddTask(List<string> args)
     int priority = 1; // Medium
     string? category = null;
     string? description = null;
+    RecurrencePattern? recurrence = null;
+    int recurrenceInterval = 1;
 
     for (int i = 1; i < args.Count; i++)
     {
@@ -96,6 +99,24 @@ async Task AddTask(List<string> args)
             description = args[i + 1];
             i++; // Skip consumed value
         }
+        else if (args[i] == "--recurrence" && i + 1 < args.Count)
+        {
+            var r = args[i + 1].ToLower();
+            recurrence = r switch {
+                "daily" => RecurrencePattern.Daily,
+                "weekly" => RecurrencePattern.Weekly,
+                "monthly" => RecurrencePattern.Monthly,
+                "yearly" => RecurrencePattern.Yearly,
+                _ => null
+            };
+            i++; // Skip consumed value
+        }
+        else if (args[i] == "--interval" && i + 1 < args.Count)
+        {
+            if (int.TryParse(args[i + 1], out var interval))
+                recurrenceInterval = interval;
+            i++; // Skip consumed value
+        }
         else if (!args[i].StartsWith("--"))
         {
             title = args[i];
@@ -105,19 +126,19 @@ async Task AddTask(List<string> args)
     if (string.IsNullOrWhiteSpace(title))
     {
         Console.WriteLine("Error: Title is required");
-        Console.WriteLine("Usage: pm add <title> --assignee <name> [--due-date YYYY-MM-DD] [--requestor <name>] [--priority low|medium|high|critical] [--category <name>] [--description <text>]");
+        Console.WriteLine("Usage: pm add <title> --assignee <name> [--due-date YYYY-MM-DD] [--requestor <name>] [--priority low|medium|high|critical] [--category <name>] [--description <text>] [--recurrence daily|weekly|monthly|yearly] [--interval <N>]");
         return;
     }
 
     if (string.IsNullOrWhiteSpace(assignee))
     {
         Console.WriteLine("Error: Assignee is required");
-        Console.WriteLine("Usage: pm add <title> --assignee <name> [--due-date YYYY-MM-DD] [--requestor <name>] [--priority low|medium|high|critical] [--category <name>] [--description <text>]");
+        Console.WriteLine("Usage: pm add <title> --assignee <name> [--due-date YYYY-MM-DD] [--requestor <name>] [--priority low|medium|high|critical] [--category <name>] [--description <text>] [--recurrence daily|weekly|monthly|yearly] [--interval <N>]");
         return;
     }
 
     var priorityLevel = (PriorityLevel)priority;
-    var request = new { Title = title, Assignee = assignee, DueDate = dueDate, Requestor = requestor, Priority = priorityLevel, Category = category, Description = description };
+    var request = new { Title = title, Assignee = assignee, DueDate = dueDate, Requestor = requestor, Priority = priorityLevel, Category = category, Description = description, RecurrencePattern = recurrence, RecurrenceInterval = recurrenceInterval, ParentTaskId = (int?)null, NextDueDate = (DateTime?)null };
     var response = await client.PostAsJsonAsync("/api/tasks", request);
 
     if (!response.IsSuccessStatusCode)
@@ -132,7 +153,8 @@ async Task AddTask(List<string> args)
     var priStr = task.Priority != PriorityLevel.Medium ? $", priority: {task.Priority}" : "";
     var catStr = !string.IsNullOrEmpty(task.Category) ? $", category: {task.Category}" : "";
     var descStr = !string.IsNullOrEmpty(task.Description) ? $", desc: {task.Description}" : "";
-    Console.WriteLine($"✓ Task #{task!.Id} created: \"{task.Title}\" (assignee: {task.Assignee}{dueStr}{reqStr}{priStr}{catStr}{descStr})");
+    var recStr = task.RecurrencePattern.HasValue ? $", recurrence: {task.RecurrencePattern} (every {task.RecurrenceInterval})" : "";
+    Console.WriteLine($"✓ Task #{task!.Id} created: \"{task.Title}\" (assignee: {task.Assignee}{dueStr}{reqStr}{priStr}{catStr}{descStr}{recStr})");
 }
 
 async Task ListTasks(List<string> args)
@@ -186,7 +208,8 @@ async Task ListTasks(List<string> args)
         var priStr = task.Priority != PriorityLevel.Medium ? $" | prio: {task.Priority}" : "";
         var catStr = !string.IsNullOrEmpty(task.Category) ? $" | cat: {task.Category}" : "";
         var descStr = !string.IsNullOrEmpty(task.Description) ? $" | desc: {task.Description}" : "";
-        Console.WriteLine($"{statusIcon} #{task.Id} | {task.Status,-12} | {task.Assignee,-10} | {task.Title}{dueStr}{reqStr}{priStr}{catStr}{descStr}");
+        var recStr = task.RecurrencePattern.HasValue ? $" | rec: {task.RecurrencePattern} (×{task.RecurrenceInterval})" : "";
+        Console.WriteLine($"{statusIcon} #{task.Id} | {task.Status,-12} | {task.Assignee,-10} | {task.Title}{dueStr}{reqStr}{priStr}{catStr}{descStr}{recStr}");
     }
 }
 
@@ -275,4 +298,8 @@ public class TaskItem
     public PriorityLevel Priority { get; set; }
     public string? Category { get; set; }
     public string? Description { get; set; }
+    public RecurrencePattern? RecurrencePattern { get; set; }
+    public int RecurrenceInterval { get; set; }
+    public int? ParentTaskId { get; set; }
+    public DateTime? NextDueDate { get; set; }
 }

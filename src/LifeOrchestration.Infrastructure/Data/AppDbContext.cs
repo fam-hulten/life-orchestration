@@ -18,6 +18,8 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Assignee).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Status).HasConversion<int>();
             entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.RecurrencePattern).HasConversion<int?>();
+            entity.Property(e => e.ParentTaskId).IsRequired(false);
         });
     }
 }
