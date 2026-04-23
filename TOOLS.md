@@ -52,16 +52,23 @@ Personal task and life orchestration tool for Johanna, Robert and Lilly.
 **CLI-kommandon:**
 ```bash
 pm add "Titel" --assignee <robert|lilly|johanna>
+pm add "Städning" --assignee lilly --recurrence weekly --interval 1
 pm list
 pm list --assignee <name>
 pm start <id>
-pm done <id>
+pm done <id>          # ← Vid recurring: skapar automatiskt nästa instans
 pm delete <id>
 ```
 
+**Recurring tasks (v1.2):**
+- `--recurrence daily|weekly|monthly|yearly` – upprepningsmönster
+- `--interval <N>` – var N:e period (default: 1)
+
 **API endpoints:**
 - `GET /api/tasks` – lista alla tasks
-- `POST /api/tasks` – skapa task `{title, assignee}`
+- `GET /api/tasks?recurrent=true` – bara recurring tasks
+- `GET /api/tasks?parenttaskid=<id>` – instanser av en recurring task
+- `POST /api/tasks` – skapa task
 - `PATCH /api/tasks/:id` – uppdatera status `{status}`
 - `DELETE /api/tasks/:id` – ta bort task
 
