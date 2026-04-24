@@ -1,0 +1,1 @@
+#!/bin/bash\nexec python3 "./decisions.py" "$@"
