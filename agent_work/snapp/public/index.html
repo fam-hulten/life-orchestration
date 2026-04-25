@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snäpp – Widget-bildgenerator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #333; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; color: #222; }
+    .subtitle { color: #888; font-size: 0.875rem; margin-bottom: 2rem; }
+    .card { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); width: 100%; max-width: 480px; }
+    label { display: block; font-size: 0.8rem; font-weight: 600; color: #555; margin-bottom: 0.4rem; }
+    input[type="text"], textarea { width: 100%; padding: 0.6rem 0.8rem; border: 1.5px solid #ddd; border-radius: 8px; font-size: 1rem; margin-bottom: 1rem; outline: none; transition: border-color 0.2s; }
+    input[type="text"]:focus, textarea:focus { border-color: #555; }
+    textarea { resize: vertical; min-height: 60px; font-family: inherit; }
+    .hint { font-size: 0.75rem; color: #aaa; margin-bottom: 1rem; }
+    button { background: #222; color: white; border: none; padding: 0.7rem 1.5rem; border-radius: 8px; font-size: 1rem; cursor: pointer; width: 100%; transition: opacity 0.2s; }
+    button:hover { opacity: 0.85; }
+    button:disabled { background: #aaa; cursor: not-allowed; }
+    #result { margin-top: 1.5rem; text-align: center; display: none; }
+    #result img { max-width: 100%; border-radius: 8px; border: 1px solid #eee; }
+    #downloadBtn { margin-top: 0.75rem; background: #222; }
+    .loader { display: none; margin-top: 1rem; color: #666; font-size: 0.875rem; }
+    .loader span { display: inline-block; animation: pulse 1.2s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .error { color: #c0392b; font-size: 0.875rem; margin-top: 0.75rem; display: none; }
+    .cached { font-size: 0.75rem; color: #888; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h1>Snäpp</h1>
+  <p class="subtitle">Widget-bildgenerator</p>
+
+  <div class="card">
+    <label for="concept">Koncept</label>
+    <input type="text" id="concept" placeholder="t.ex. gunga, köttbullar, sova" autofocus>
+
+    <label for="context">Beskrivning (valfri)</label>
+    <textarea id="context" placeholder="t.ex. gunga på en gunga i parken"></textarea>
+    <p class="hint">Mer kontext = mer träffsäker bild</p>
+
+    <button id="generateBtn">Generera bild</button>
+
+    <div class="loader" id="loader"><span>⏳ Genererar…</span></div>
+    <div class="error" id="error"></div>
+
+    <div id="result">
+      <img id="generatedImg" src="" alt="Genererad bild">
+      <button id="downloadBtn">Ladda ner</button>
+      <p class="cached" id="cachedNote"></p>
+    </div>
+  </div>
+
+  <script>
+    const conceptInput = document.getElementById('concept');
+    const contextInput = document.getElementById('context');
+    const generateBtn = document.getElementById('generateBtn');
+    const loader = document.getElementById('loader');
+    const errorEl = document.getElementById('error');
+    const resultEl = document.getElementById('result');
+    const generatedImg = document.getElementById('generatedImg');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const cachedNote = document.getElementById('cachedNote');
+
+    let currentFilename = '';
+
+    generateBtn.addEventListener('click', async () => {
+      const concept = conceptInput.value.trim();
+      if (!concept) { alert('Skriv in ett koncept först'); return; }
+
+      generateBtn.disabled = true;
+      loader.style.display = 'block';
+      errorEl.style.display = 'none';
+      resultEl.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ concept, context: contextInput.value.trim() })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || 'Något gick fel');
+
+        currentFilename = data.filename;
+        generatedImg.src = '/generated/' + currentFilename + '?t=' + Date.now();
+        cachedNote.textContent = data.cached ? '📦 Hittades i cache' : '✨ Nybild genererad';
+        resultEl.style.display = 'block';
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.style.display = 'block';
+      } finally {
+        generateBtn.disabled = false;
+        loader.style.display = 'none';
+      }
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      if (!currentFilename) return;
+      const a = document.createElement('a');
+      a.href = '/generated/' + currentFilename;
+      a.download = currentFilename;
+      a.click();
+    });
+  </script>
+</body>
+</html>
